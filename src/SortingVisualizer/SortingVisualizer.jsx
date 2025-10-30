@@ -14,8 +14,16 @@ export default class SortingVisualizer extends Component {
       stopAnimation: false,
       isAnimating: false,
       sorted: false,
+      numBars: 190,
     };
   }
+
+handleNumBarsChange = (event) => {
+    const value = Math.min(10000, Math.max("0", Number(event.target.value)));
+    this.setState({ numBars: value }, () => {
+      this.resetArray();
+    });
+  };
 
   componentDidMount() {
     this.resetArray();
@@ -23,7 +31,7 @@ export default class SortingVisualizer extends Component {
 
   resetArray() {
     const array = [];
-    for (let i = 0; i < Numofbars ; i++) {
+    for (let i = 0; i < this.state.numBars; i++) {
       array.push(randomInt(5, 850));
     }
     this.setState({ array, comparing: [], swapped: [], sorted: false });
@@ -297,10 +305,26 @@ animateQuickSort(animations) {
   animate();
 }
 
+
+
   render() {
-    const { array, comparing, swapped, isAnimating } = this.state;
+    const { array, comparing, swapped, isAnimating, numBars } = this.state;
     return (
       <div>
+        <div className="controls">
+          <div className="bars-input-container">
+            <label htmlFor="numBars">Number of bars:</label>
+            <input
+              type="number"
+              id="numBars"
+              min="0"
+              max="10000"
+              value={numBars}
+              onChange={this.handleNumBarsChange}
+              disabled={isAnimating}
+            />
+          </div>
+        </div>
         <div className="array-container">
           {array.map((value, idx) => (
           <div
@@ -311,7 +335,7 @@ animateQuickSort(animations) {
             style={{ height: `${value}px` }}
           ></div>
           ))}
-          
+
         </div>
         <div className="buttonss">
           <button className="NewArr" onClick={() => this.resetArray()} disabled={isAnimating}>Generate New Array</button>
@@ -319,10 +343,10 @@ animateQuickSort(animations) {
           <button onClick={() => this.insertionSort()} disabled={isAnimating}>Insertion Sort</button>
           <button onClick={() => this.quickSort()} disabled={isAnimating}>Quick Sort</button>
           <button onClick={() => this.heapSort()} disabled={isAnimating}>Heap Sort</button>
-          <button className="stop" onClick={this.stopAnimations} disabled={!isAnimating}>Stop Animation</button>
+          <button className="stop" onClick={this.stopAnimations} disabled={!isAnimating}>Stop Animation</button>        
         </div>
       </div>
-      
+
     );
   }
 }
