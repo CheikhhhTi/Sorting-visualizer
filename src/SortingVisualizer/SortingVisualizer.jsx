@@ -2,7 +2,6 @@ import React, { Component } from "react";
 
 import "./SortingVisualizer.css";
 
-const Numofbars = 190;
 export default class SortingVisualizer extends Component {
   constructor(props) {
     super(props);
@@ -14,7 +13,8 @@ export default class SortingVisualizer extends Component {
       stopAnimation: false,
       isAnimating: false,
       sorted: false,
-      numBars: 190,
+      numBars: 238,
+      AudioContext: null,
     };
   }
 
@@ -27,12 +27,39 @@ handleNumBarsChange = (event) => {
 
   componentDidMount() {
     this.resetArray();
+    this.initAudio();
   }
+
+  initAudio() {
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    this.setState({ audioContext });
+  }
+
+  playSound(frequency, duration = 0.05) {
+    const { audioContext } = this.state;
+    if (!audioContext) return;
+
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    oscillator.frequency.value = frequency;
+    oscillator.type = "sine";
+
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + duration);
+  }
+
 
   resetArray() {
     const array = [];
     for (let i = 0; i < this.state.numBars; i++) {
-      array.push(randomInt(5, 850));
+      array.push(randomInt(5, 845));
     }
     this.setState({ array, comparing: [], swapped: [], sorted: false });
   }
@@ -41,62 +68,91 @@ handleNumBarsChange = (event) => {
   this.setState({ stopAnimation: true, comparing: [], swapped: [], sorted: false, isAnimating: false });
   };
 
-  bubbleSort() {
+bubbleSort() {
+  const animations = [];
+  const array = [...this.state.array];
 
-    const animations = [];
-    const array  = [...this.state.array];
+  for (let i = 0; i < array.length; i++) {
+    for (let j = 0; j < array.length - i - 1; j++) {
 
-    // Generate animations
-    for (let i = 0; i < array.length; i++) {
-      for (let j = 0; j < array.length - i - 1; j++) {
-        // Push the indices being compared
-        animations.push({ type: "compare", indices: [j, j + 1] });
+      animations.push({ type: "compare", indices: [j, j + 1] });
 
-        if (array[j] > array[j + 1]) {
-          // Push the indices being swapped
-          animations.push({ type: "swap", indices: [j, j + 1] });
-
-          // Perform the swap
-          const temp = array[j];
-          array[j] = array[j + 1];
-          array[j + 1] = temp;
-        }
+      if (array[j] > array[j + 1]) {
+        animations.push({ type: "swap", indices: [j, j + 1] });
+        [array[j], array[j + 1]] = [array[j + 1], array[j]];
       }
     }
 
-    // Execute animations
-    this.setState({ isAnimating: true, stopAnimation: false, sorted: false }, () => {
-      this.animateBubbleSort(animations);
-  });
+    // Mark this bar as fixed
+    animations.push({ 
+      type: "fixed", 
+      index: array.length - i - 1 
+    });
+  }
+
+  this.setState(
+    { isAnimating: true, stopAnimation: false, sorted: false },
+    () => this.animateBubbleSort(animations)
+  );
 }
+
+
 animateBubbleSort(animations) {
   let array = [...this.state.array];
   let i = 0;
 
   const animate = () => {
-    if (this.state.stopAnimation || i >= animations.length) {
-      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true});
+    if (i >= animations.length) {
+      this.setState({
+        comparing: [],
+        swapped: [],
+        fixedIndex: null,
+        stopAnimation: false,
+        isAnimating: false,
+        sorted: true,
+          }, () => {
+            this.playFinalMelody();
+      });
+
+      return;
+    }
+    else if (this.state.stopAnimation) {
+      this.setState({ comparing: [], swapped: [], fixedIndex: null, stopAnimation: false, isAnimating: false, sorted: false });
       return;
     }
 
     const animation = animations[i];
+
     if (animation.type === "compare") {
       this.setState({ comparing: animation.indices });
-    } else if (animation.type === "swap") {
+    }
+
+    else if (animation.type === "swap") {
       const [a, b] = animation.indices;
-      const temp = array[a];
-      array[a] = array[b];
-      array[b] = temp;
+      [array[a], array[b]] = [array[b], array[a]];
       this.setState({ array: [...array], swapped: animation.indices });
     }
 
+    else if (animation.type === "fixed") {
+      const idx = animation.index;
+
+      // Optional: highlight bar in green
+      this.setState({ fixedIndex: idx });
+
+      // Play sound
+      const frequency = 30 + array[idx];
+      this.playSound(frequency);
+    }
+
+    
     i++;
-    setTimeout(animate, 0.01);
+    setTimeout(animate, 10);
   };
 
   animate();
 }
-  
+
+
   insertionSort() {
   const animations = [];
   const array = [...this.state.array];
@@ -178,8 +234,10 @@ animateHeapSort(animations) {
   let i = 0;
 
   const animate = () => {
-    if (this.state.stopAnimation) {
-      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: false });
+    if (i >= animations.length) {
+      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true,
+                 }, () => {
+            this.playFinalMelody(); });
       return;
     }
     if (i >= animations.length) {
@@ -201,7 +259,7 @@ animateHeapSort(animations) {
     }
 
     i++;
-    setTimeout(animate, 20);
+    setTimeout(animate, 0.1);
   };
 
   animate();
@@ -212,8 +270,14 @@ animateInsertionSort(animations) {
   let i = 0;
 
   const animate = () => {
-    if (this.state.stopAnimation || i >= animations.length) {
-        this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true });
+    if (i >= animations.length) {
+      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true,
+                 }, () => {
+            this.playFinalMelody(); });
+      return;
+    }
+    if (this.state.stopAnimation) {
+      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: false });
       return;
     }
 
@@ -280,8 +344,14 @@ animateQuickSort(animations) {
   let i = 0;
 
   const animate = () => {
-    if (this.state.stopAnimation || i >= animations.length) {
-      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true });
+    if (i >= animations.length) {
+      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true,
+                 }, () => {
+            this.playFinalMelody(); });
+      return;
+    }
+    if (this.state.stopAnimation) {
+      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: false });
       return;
     }
 
@@ -305,10 +375,28 @@ animateQuickSort(animations) {
   animate();
 }
 
+playFinalMelody = () => {
+  const array = this.state.array;
 
+  array.forEach((value, i) => {
+    setTimeout(() => {
+      const frequency = 200 + value;
+      this.playSound(frequency);
 
-  render() {
-    const { array, comparing, swapped, isAnimating, numBars } = this.state;
+      // Optional: flash the bar visually
+      this.setState({ finalHighlight: i });
+
+      // Remove highlight after a short moment
+      setTimeout(() => {
+        this.setState({ finalHighlight: null });
+      }, 80);
+
+    }, i * 10);
+  });
+}
+
+render() {
+    const { array, comparing, swapped, isAnimating, numBars, finalHighlight } = this.state;
     return (
       <div>
         <div className="controls">
@@ -325,12 +413,12 @@ animateQuickSort(animations) {
             />
           </div>
         </div>
-        <div className="array-container">
+        <div className="array-container" style={{ '--num-bars': numBars }}>
           {array.map((value, idx) => (
           <div
             className={`array-bar ${
               comparing.includes(idx) ? "comparing" : ""
-            } ${swapped.includes(idx) ? "swapped" : ""} ${this.state.sorted ? "sorted" : ""}`}
+            } ${swapped.includes(idx) ? "swapped" : ""} ${this.state.sorted ? "sorted" : ""} ${finalHighlight === idx ? "final-highlight" : ""}`}
             key={idx}
             style={{ height: `${value}px` }}
           ></div>
