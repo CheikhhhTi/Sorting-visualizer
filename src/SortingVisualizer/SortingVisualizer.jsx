@@ -15,6 +15,7 @@ export default class SortingVisualizer extends Component {
       sorted: false,
       numBars: 238,
       AudioContext: null,
+      fixedIndex: null,
     };
   }
 
@@ -137,7 +138,7 @@ animateBubbleSort(animations) {
       const idx = animation.index;
 
       // Play sound
-      const frequency = 30 + array[idx];
+      const frequency = 500 + array[idx];
       this.playSound(frequency);
     }
 
@@ -181,13 +182,13 @@ animateInsertionSort(animations) {
   let i = 0;
   const animate = () => {
     if (i >= animations.length) {
-      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true,
+      this.setState({ comparing: [], swapped: [], fixedIndex: null, stopAnimation: false, isAnimating: false, sorted: true,
                  }, () => {
             this.playFinalMelody(); });
       return;
     }
     if (this.state.stopAnimation) {
-      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: false });
+      this.setState({ comparing: [], swapped: [], fixedIndex: null, stopAnimation: false, isAnimating: false, sorted: false });
       return;
     }
     const animation = animations[i];
@@ -205,7 +206,7 @@ animateInsertionSort(animations) {
       const idx = animation.index;
       
       // Play sound
-      const frequency = 30 + array[idx];
+      const frequency = 500 + array[idx];
       this.playSound(frequency);
     }
       
@@ -230,6 +231,10 @@ getHeapSortAnimations(array) {
   for (let i = n - 1; i > 0; i--) {
     animations.push({ type: "swap", indices: [0, i] });
     [arr[0], arr[i]] = [arr[i], arr[0]];
+
+    // Mark this element as fixed in its final position
+    animations.push({ type: "fixed", index: i });
+
     heapify(arr, i, 0);
   }
 
@@ -277,10 +282,6 @@ animateHeapSort(animations) {
             this.playFinalMelody(); });
       return;
     }
-    if (i >= animations.length) {
-      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true });
-      return;
-    }
     if (this.state.stopAnimation) {
       this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: false });
       return;
@@ -297,6 +298,12 @@ animateHeapSort(animations) {
       newArray[b] = temp;
       array = newArray;
       this.setState({ array: newArray, swapped: animation.indices });
+    } else if (animation.type === "fixed") {
+      const idx = animation.index;
+      
+      // Play sound when element is placed in final position
+      const frequency = 500 + array[idx];
+      this.playSound(frequency);
     }
 
     i++;
@@ -338,6 +345,10 @@ getQuickSortAnimations(array) {
     }
     animations.push({ type: "swap", indices: [i, end] });
     [arr[i], arr[end]] = [arr[end], arr[i]];
+
+    // Mark pivot as fixed in its final position
+    animations.push({ type: "fixed", index: i });
+
     return i;
   }
 
@@ -361,17 +372,127 @@ animateQuickSort(animations) {
       return;
     }
 
+  const animation = animations[i];
+  if (animation.type === "compare") {
+    this.setState({ comparing: animation.indices, swapped: [] });
+  } else if (animation.type === "swap") {
+    const [a, b] = animation.indices;
+    const newArray = [...array];
+    const temp = newArray[a];
+    newArray[a] = newArray[b];
+    newArray[b] = temp;
+    array = newArray;
+    this.setState({ array: newArray, swapped: animation.indices });
+  } else if (animation.type === "fixed") {
+    const idx = animation.index;
+    
+    // Play sound when pivot is placed in final position
+    const frequency = 500 + array[idx];
+    this.playSound(frequency);
+  }
+
+    i++;
+    setTimeout(animate, 1);
+  };
+
+  animate();
+}
+
+mergeSort() {
+  const animations = this.getMergeSortAnimations(this.state.array);
+  this.setState({ isAnimating: true, stopAnimation: false, sorted: false }, () => {
+    this.animateMergeSort(animations);
+  });
+}
+
+getMergeSortAnimations(array) {
+  const animations = [];
+  const arr = [...array];
+  const auxiliary = [...array];
+  
+  function mergeSortHelper(start, end) {
+    if (start >= end) return;
+    
+    const mid = Math.floor((start + end) / 2);
+    mergeSortHelper(start, mid);
+    mergeSortHelper(mid + 1, end);
+    merge(start, mid, end);
+  }
+  
+  function merge(start, mid, end) {
+    let i = start;
+    let j = mid + 1;
+    let k = start;
+    
+    while (i <= mid && j <= end) {
+      animations.push({ type: "compare", indices: [i, j] });
+      
+      if (auxiliary[i] <= auxiliary[j]) {
+        animations.push({ type: "overwrite", index: k, value: auxiliary[i] });
+        arr[k] = auxiliary[i];
+        i++;
+      } else {
+        animations.push({ type: "overwrite", index: k, value: auxiliary[j] });
+        arr[k] = auxiliary[j];
+        j++;
+      }
+      
+      k++;
+    }
+    
+    while (i <= mid) {
+      animations.push({ type: "compare", indices: [i, i] });
+      animations.push({ type: "overwrite", index: k, value: auxiliary[i] });
+      arr[k] = auxiliary[i];
+      i++;
+      k++;
+    }
+    
+    while (j <= end) {
+      animations.push({ type: "compare", indices: [j, j] });
+      animations.push({ type: "overwrite", index: k, value: auxiliary[j] });
+      arr[k] = auxiliary[j];
+      j++;
+      k++;
+    }
+    
+    for (let idx = start; idx <= end; idx++) {
+      auxiliary[idx] = arr[idx];
+    }
+  }
+  
+  mergeSortHelper(0, arr.length - 1);
+  return animations;
+}
+
+animateMergeSort(animations) {
+  let array = [...this.state.array];
+  let i = 0;
+
+  const animate = () => {
+    if (i >= animations.length) {
+      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true }, () => {
+        this.playFinalMelody();
+      });
+      return;
+    }
+    if (this.state.stopAnimation) {
+      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: false });
+      return;
+    }
+
     const animation = animations[i];
     if (animation.type === "compare") {
       this.setState({ comparing: animation.indices, swapped: [] });
-    } else if (animation.type === "swap") {
-      const [a, b] = animation.indices;
+    } else if (animation.type === "overwrite") {
       const newArray = [...array];
-      const temp = newArray[a];
-      newArray[a] = newArray[b];
-      newArray[b] = temp;
+      newArray[animation.index] = animation.value;
       array = newArray;
-      this.setState({ array: newArray, swapped: animation.indices });
+      this.setState({ array: newArray, swapped: [animation.index] });
+      
+      // Play sound for the value being placed
+      const frequency = 300 + animation.value;
+      this.playSound(frequency);
     }
 
     i++;
@@ -386,7 +507,7 @@ playFinalMelody = () => {
 
   array.forEach((value, i) => {
     setTimeout(() => {
-      const frequency = 200 + value;
+      const frequency = 500 + value;
       this.playSound(frequency);
 
       // Optional: flash the bar visually
@@ -436,6 +557,7 @@ render() {
           <button onClick={() => this.bubbleSort()} disabled={isAnimating}>Bubble Sort</button>
           <button onClick={() => this.insertionSort()} disabled={isAnimating}>Insertion Sort</button>
           <button onClick={() => this.quickSort()} disabled={isAnimating}>Quick Sort</button>
+          <button onClick={() => this.mergeSort()} disabled={isAnimating}>Merge Sort</button>
           <button onClick={() => this.heapSort()} disabled={isAnimating}>Heap Sort</button>
           <button className="stop" onClick={this.stopAnimations} disabled={!isAnimating}>Stop Animation</button>        
         </div>
