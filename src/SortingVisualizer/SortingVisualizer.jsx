@@ -136,9 +136,6 @@ animateBubbleSort(animations) {
     else if (animation.type === "fixed") {
       const idx = animation.index;
 
-      // Optional: highlight bar in green
-      this.setState({ fixedIndex: idx });
-
       // Play sound
       const frequency = 30 + array[idx];
       this.playSound(frequency);
@@ -146,23 +143,21 @@ animateBubbleSort(animations) {
 
     
     i++;
-    setTimeout(animate, 10);
+    setTimeout(animate, 1);
   };
 
   animate();
 }
 
 
-  insertionSort() {
+insertionSort() {
   const animations = [];
   const array = [...this.state.array];
-
   for (let i = 1; i < array.length; i++) {
     let j = i;
     while (j > 0 && array[j - 1] > array[j]) {
       animations.push({ type: "compare", indices: [j - 1, j] });
       animations.push({ type: "swap", indices: [j - 1, j] });
-
       // Swap in the array for animation generation
       const temp = array[j];
       array[j] = array[j - 1];
@@ -172,10 +167,52 @@ animateBubbleSort(animations) {
     if (j > 0) {
       animations.push({ type: "compare", indices: [j - 1, j] });
     }
+    // Mark the element as fixed at position i
+    animations.push({ type: "fixed", index: j });
   }
     this.setState({ isAnimating: true, stopAnimation: false, sorted: false }, () => {
     this.animateInsertionSort(animations);
   });
+}
+
+
+animateInsertionSort(animations) {
+  let array = [...this.state.array];
+  let i = 0;
+  const animate = () => {
+    if (i >= animations.length) {
+      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true,
+                 }, () => {
+            this.playFinalMelody(); });
+      return;
+    }
+    if (this.state.stopAnimation) {
+      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: false });
+      return;
+    }
+    const animation = animations[i];
+    if (animation.type === "compare") {
+      this.setState({ comparing: animation.indices, swapped: [] });
+    } else if (animation.type === "swap") {
+      const [a, b] = animation.indices;
+      const newArray = [...array];
+      const temp = newArray[a];
+      newArray[a] = newArray[b];
+      newArray[b] = temp;
+      array = newArray;
+      this.setState({ array: newArray, swapped: animation.indices });
+    } else if (animation.type === "fixed") {
+      const idx = animation.index;
+      
+      // Play sound
+      const frequency = 30 + array[idx];
+      this.playSound(frequency);
+    }
+      
+    i++;
+    setTimeout(animate, 1);
+  };
+  animate();
 }
 
 // Heap Sort
@@ -244,38 +281,6 @@ animateHeapSort(animations) {
       this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true });
       return;
     }
-
-    const animation = animations[i];
-    if (animation.type === "compare") {
-      this.setState({ comparing: animation.indices, swapped: [] });
-    } else if (animation.type === "swap") {
-      const [a, b] = animation.indices;
-      const newArray = [...array];
-      const temp = newArray[a];
-      newArray[a] = newArray[b];
-      newArray[b] = temp;
-      array = newArray;
-      this.setState({ array: newArray, swapped: animation.indices });
-    }
-
-    i++;
-    setTimeout(animate, 0.1);
-  };
-
-  animate();
-}
-
-animateInsertionSort(animations) {
-  let array = [...this.state.array];
-  let i = 0;
-
-  const animate = () => {
-    if (i >= animations.length) {
-      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true,
-                 }, () => {
-            this.playFinalMelody(); });
-      return;
-    }
     if (this.state.stopAnimation) {
       this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: false });
       return;
@@ -295,11 +300,12 @@ animateInsertionSort(animations) {
     }
 
     i++;
-    setTimeout(animate, 0.01);
+    setTimeout(animate, 1);
   };
 
   animate();
 }
+
 
 quickSort() {
   const animations = this.getQuickSortAnimations(this.state.array);
@@ -369,7 +375,7 @@ animateQuickSort(animations) {
     }
 
     i++;
-    setTimeout(animate, 0.01);
+    setTimeout(animate, 1);
   };
 
   animate();
