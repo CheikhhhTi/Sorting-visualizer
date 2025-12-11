@@ -13,9 +13,10 @@ export default class SortingVisualizer extends Component {
       stopAnimation: false,
       isAnimating: false,
       sorted: false,
-      numBars: 238,
+      numBars: 500,
       AudioContext: null,
       fixedIndex: null,
+      speed: 1,
     };
   }
 
@@ -25,6 +26,11 @@ handleNumBarsChange = (event) => {
       this.resetArray();
     });
   };
+
+handlespeedChange = (event) => {
+    const value = event.target.value;
+    this.setState({ speed: value });
+  }
 
   componentDidMount() {
     this.resetArray();
@@ -101,7 +107,7 @@ bubbleSort() {
 animateBubbleSort(animations) {
   let array = [...this.state.array];
   let i = 0;
-
+  const speed = this.state.speed;
   const animate = () => {
     if (i >= animations.length) {
       this.setState({
@@ -144,7 +150,7 @@ animateBubbleSort(animations) {
 
     
     i++;
-    setTimeout(animate, 1);
+    setTimeout(animate, speed);
   };
 
   animate();
@@ -180,6 +186,7 @@ insertionSort() {
 animateInsertionSort(animations) {
   let array = [...this.state.array];
   let i = 0;
+  const speed = this.state.speed;
   const animate = () => {
     if (i >= animations.length) {
       this.setState({ comparing: [], swapped: [], fixedIndex: null, stopAnimation: false, isAnimating: false, sorted: true,
@@ -211,7 +218,7 @@ animateInsertionSort(animations) {
     }
       
     i++;
-    setTimeout(animate, 1);
+    setTimeout(animate, speed);
   };
   animate();
 }
@@ -274,7 +281,7 @@ heapSort() {
 animateHeapSort(animations) {
   let array = [...this.state.array];
   let i = 0;
-
+  const speed = this.state.speed;
   const animate = () => {
     if (i >= animations.length) {
       this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true,
@@ -307,7 +314,7 @@ animateHeapSort(animations) {
     }
 
     i++;
-    setTimeout(animate, 1);
+    setTimeout(animate, speed);
   };
 
   animate();
@@ -359,7 +366,7 @@ getQuickSortAnimations(array) {
 animateQuickSort(animations) {
   let array = [...this.state.array];
   let i = 0;
-
+  const speed = this.state.speed;
   const animate = () => {
     if (i >= animations.length) {
       this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true,
@@ -392,7 +399,7 @@ animateQuickSort(animations) {
   }
 
     i++;
-    setTimeout(animate, 1);
+    setTimeout(animate, speed);
   };
 
   animate();
@@ -468,7 +475,7 @@ getMergeSortAnimations(array) {
 animateMergeSort(animations) {
   let array = [...this.state.array];
   let i = 0;
-
+  const speed = this.state.speed;
   const animate = () => {
     if (i >= animations.length) {
       this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true }, () => {
@@ -496,7 +503,7 @@ animateMergeSort(animations) {
     }
 
     i++;
-    setTimeout(animate, 1);
+    setTimeout(animate, speed);
   };
 
   animate();
@@ -523,19 +530,31 @@ playFinalMelody = () => {
 }
 
 render() {
-    const { array, comparing, swapped, isAnimating, numBars, finalHighlight } = this.state;
+    const { array, comparing, swapped, isAnimating, numBars, finalHighlight, speed } = this.state;
     return (
       <div>
         <div className="controls">
-          <div className="bars-input-container">
+          <div className="input-container">
             <label htmlFor="numBars">Number of bars:</label>
             <input
-              type="number"
+              type="text"
               id="numBars"
               min="0"
               max="10000"
               value={numBars}
               onChange={this.handleNumBarsChange}
+              disabled={isAnimating}
+            />
+          </div>
+          <div className="input-container">
+            <label htmlFor="speed">Speed (ms):</label>
+            <input
+              type="number"
+              id="speed"
+              min="0"
+              max="1000"
+              value={this.state.speed}
+              onChange={this.handlespeedChange}
               disabled={isAnimating}
             />
           </div>
