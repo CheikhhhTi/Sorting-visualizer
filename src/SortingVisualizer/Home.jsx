@@ -40,6 +40,7 @@ export default function Home() {
             <div className="algo-tag">Insertion Sort</div>
             <div className="algo-tag">Quick Sort</div>
             <div className="algo-tag">Heap Sort</div>
+            <div className="algo-tag">Merge Sort</div>
           </div>
         </div>
       </div>

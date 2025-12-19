@@ -15,7 +15,6 @@ export default class SortingVisualizer extends Component {
       sorted: false,
       numBars: 500,
       AudioContext: null,
-      fixedIndex: null,
       speed: 1,
     };
   }
@@ -75,6 +74,10 @@ handlespeedChange = (event) => {
   this.setState({ stopAnimation: true, comparing: [], swapped: [], sorted: false, isAnimating: false });
   };
 
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////BUBBLE SORT/////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bubbleSort() {
   const animations = [];
   const array = [...this.state.array];
@@ -90,7 +93,7 @@ bubbleSort() {
       }
     }
 
-    // Mark this bar as fixed
+    // Marks this bar as fixed
     animations.push({ 
       type: "fixed", 
       index: array.length - i - 1 
@@ -113,7 +116,6 @@ animateBubbleSort(animations) {
       this.setState({
         comparing: [],
         swapped: [],
-        fixedIndex: null,
         stopAnimation: false,
         isAnimating: false,
         sorted: true,
@@ -124,7 +126,7 @@ animateBubbleSort(animations) {
       return;
     }
     else if (this.state.stopAnimation) {
-      this.setState({ comparing: [], swapped: [], fixedIndex: null, stopAnimation: false, isAnimating: false, sorted: false });
+      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: false });
       return;
     }
 
@@ -156,6 +158,9 @@ animateBubbleSort(animations) {
   animate();
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////INSERTION SORT//////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 insertionSort() {
   const animations = [];
@@ -165,7 +170,6 @@ insertionSort() {
     while (j > 0 && array[j - 1] > array[j]) {
       animations.push({ type: "compare", indices: [j - 1, j] });
       animations.push({ type: "swap", indices: [j - 1, j] });
-      // Swap in the array for animation generation
       const temp = array[j];
       array[j] = array[j - 1];
       array[j - 1] = temp;
@@ -189,13 +193,24 @@ animateInsertionSort(animations) {
   const speed = this.state.speed;
   const animate = () => {
     if (i >= animations.length) {
-      this.setState({ comparing: [], swapped: [], fixedIndex: null, stopAnimation: false, isAnimating: false, sorted: true,
+      this.setState({ 
+        comparing: [], 
+        swapped: [], 
+        stopAnimation: false, 
+        isAnimating: false, 
+        sorted: true,
                  }, () => {
             this.playFinalMelody(); });
       return;
     }
     if (this.state.stopAnimation) {
-      this.setState({ comparing: [], swapped: [], fixedIndex: null, stopAnimation: false, isAnimating: false, sorted: false });
+      this.setState({ 
+        comparing: [], 
+        swapped: [], 
+        stopAnimation: false, 
+        isAnimating: false, 
+        sorted: false
+     });
       return;
     }
     const animation = animations[i];
@@ -223,10 +238,13 @@ animateInsertionSort(animations) {
   animate();
 }
 
-// Heap Sort
-getHeapSortAnimations(array) {
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////HEAP SORT///////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+heapSort() {
   const animations = [];
-  const arr = [...array];
+  const arr = [...this.state.array];
   const n = arr.length;
 
   // Build max heap
@@ -234,45 +252,41 @@ getHeapSortAnimations(array) {
     heapify(arr, n, i);
   }
 
-  // Extract elements from heap one by one
+  // Extract elements
   for (let i = n - 1; i > 0; i--) {
     animations.push({ type: "swap", indices: [0, i] });
     [arr[0], arr[i]] = [arr[i], arr[0]];
-
-    // Mark this element as fixed in its final position
     animations.push({ type: "fixed", index: i });
-
     heapify(arr, i, 0);
   }
 
-  function heapify(arr, n, i) {
+function heapify(arr, n, i) {
     let largest = i;
     const left = 2 * i + 1;
     const right = 2 * i + 2;
 
+    // Compare parent with left child
     animations.push({ type: "compare", indices: [largest, left] });
     if (left < n && arr[left] > arr[largest]) {
       largest = left;
     }
+
+    // Compare parent with right child
     if (right < n) {
       animations.push({ type: "compare", indices: [largest, right] });
       if (arr[right] > arr[largest]) {
         largest = right;
       }
     }
-
+    // If largest is not parent, swap and recurse
     if (largest !== i) {
       animations.push({ type: "swap", indices: [i, largest] });
       [arr[i], arr[largest]] = [arr[largest], arr[i]];
+      
       heapify(arr, n, largest);
     }
   }
 
-  return animations;
-}
-
-heapSort() {
-  const animations = this.getHeapSortAnimations(this.state.array);
   this.setState({ isAnimating: true, stopAnimation: false, sorted: false }, () => {
     this.animateHeapSort(animations);
   });
@@ -284,8 +298,13 @@ animateHeapSort(animations) {
   const speed = this.state.speed;
   const animate = () => {
     if (i >= animations.length) {
-      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true,
-                 }, () => {
+      this.setState({ 
+        comparing: [], 
+        swapped: [], 
+        stopAnimation: false, 
+        isAnimating: false, 
+        sorted: true,
+        }, () => {
             this.playFinalMelody(); });
       return;
     }
@@ -320,23 +339,19 @@ animateHeapSort(animations) {
   animate();
 }
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////QUICK SORT///////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 quickSort() {
-  const animations = this.getQuickSortAnimations(this.state.array);
-  this.setState({ isAnimating: true, stopAnimation: false, sorted: false }, () => {
-    this.animateQuickSort(animations);
-  });
-}
-
-getQuickSortAnimations(array) {
   const animations = [];
-  const arr = [...array];
+  const arr = [...this.state.array];
 
-  function quickSort(start, end) {
+  function quickSortHelper(start, end) {
     if (start >= end) return;
     let pivotIdx = partition(start, end);
-    quickSort(start, pivotIdx - 1);
-    quickSort(pivotIdx + 1, end);
+    quickSortHelper(start, pivotIdx - 1);
+    quickSortHelper(pivotIdx + 1, end);
   }
 
   function partition(start, end) {
@@ -359,8 +374,11 @@ getQuickSortAnimations(array) {
     return i;
   }
 
-  quickSort(0, arr.length - 1);
-  return animations;
+  quickSortHelper(0, arr.length - 1);
+
+  this.setState({ isAnimating: true, stopAnimation: false, sorted: false }, () => {
+    this.animateQuickSort(animations);
+  });
 }
 
 animateQuickSort(animations) {
@@ -369,7 +387,12 @@ animateQuickSort(animations) {
   const speed = this.state.speed;
   const animate = () => {
     if (i >= animations.length) {
-      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true,
+      this.setState({ 
+        comparing: [], 
+        swapped: [], 
+        stopAnimation: false, 
+        isAnimating: false, 
+        sorted: true,
                  }, () => {
             this.playFinalMelody(); });
       return;
@@ -405,17 +428,14 @@ animateQuickSort(animations) {
   animate();
 }
 
-mergeSort() {
-  const animations = this.getMergeSortAnimations(this.state.array);
-  this.setState({ isAnimating: true, stopAnimation: false, sorted: false }, () => {
-    this.animateMergeSort(animations);
-  });
-}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////MERGE SORT///////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-getMergeSortAnimations(array) {
+mergeSort() {
   const animations = [];
-  const arr = [...array];
-  const auxiliary = [...array];
+  const arr = [...this.state.array];
+  const auxiliary = [...this.state.array];
   
   function mergeSortHelper(start, end) {
     if (start >= end) return;
@@ -469,8 +489,12 @@ getMergeSortAnimations(array) {
   }
   
   mergeSortHelper(0, arr.length - 1);
-  return animations;
+  
+  this.setState({ isAnimating: true, stopAnimation: false, sorted: false }, () => {
+    this.animateMergeSort(animations);
+  });
 }
+
 
 animateMergeSort(animations) {
   let array = [...this.state.array];
@@ -478,7 +502,13 @@ animateMergeSort(animations) {
   const speed = this.state.speed;
   const animate = () => {
     if (i >= animations.length) {
-      this.setState({ comparing: [], swapped: [], stopAnimation: false, isAnimating: false, sorted: true }, () => {
+      this.setState({ 
+        comparing: [], 
+        swapped: [], 
+        stopAnimation: false, 
+        isAnimating: false, 
+        sorted: true 
+      }, () => {
         this.playFinalMelody();
       });
       return;
@@ -517,13 +547,13 @@ playFinalMelody = () => {
       const frequency = 500 + value;
       this.playSound(frequency);
 
-      // Optional: flash the bar visually
+      // flash the bar visually
       this.setState({ finalHighlight: i });
 
       // Remove highlight after a short moment
       setTimeout(() => {
         this.setState({ finalHighlight: null });
-      }, 80);
+      }, 550);
 
     }, i * 10);
   });
